@@ -5,95 +5,395 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Discfy</title>
   <style>
-    body {
-      background: #121212;
-      color: white;
-      font-family: sans-serif;
-      padding: 20px;
+    * {
+      box-sizing: border-box;
       margin: 0;
+      padding: 0;
     }
-    h1 { text-align: center; }
-    #login-btn {
-      display: block;
-      margin: 40px auto;
-      padding: 12px 30px;
+    body {
+      background: #0a0a0a;
+      color: #f0f0f0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 0;
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    /* Cabeçalho */
+    header {
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(10, 10, 10, 0.8);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid #222;
+    }
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1db954, #1ed760);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    header button {
       background: #1db954;
       border: none;
       border-radius: 30px;
+      padding: 10px 24px;
       color: white;
-      font-size: 18px;
-      cursor: pointer;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .vinyl-container {
-      cursor: pointer;
-      text-align: center;
-      transition: transform 0.2s;
-    }
-    .vinyl-container:hover {
-      transform: scale(1.05);
-    }
-    .vinyl {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      background-size: cover;
-      background-position: center;
-      position: relative;
-      margin: 0 auto;
-      border: 6px solid #222;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-    }
-    .vinyl::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #121212;
-      transform: translate(-50%, -50%);
-    }
-    .vinyl-title {
-      margin-top: 10px;
       font-weight: 600;
       font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
     }
-    .vinyl-artist {
+    header button:hover {
+      background: #1ed760;
+      transform: scale(1.02);
+    }
+
+    /* Tela de login */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+      text-align: center;
+    }
+    #login-screen h2 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    #login-screen p {
+      color: #888;
+      font-size: 18px;
+      max-width: 500px;
+      margin-bottom: 32px;
+    }
+    #login-screen button {
+      background: #1db954;
+      border: none;
+      border-radius: 30px;
+      padding: 14px 40px;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    #login-screen button:hover {
+      background: #1ed760;
+      transform: scale(1.05);
+    }
+
+    /* Estante de vinis */
+    .shelf-container {
+      padding: 40px 32px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scroll-behavior: smooth;
+      padding-bottom: 20px;
+    }
+    .shelf-container::-webkit-scrollbar {
+      height: 6px;
+    }
+    .shelf-container::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    .shelf-container::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
+    .shelf-container::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    .shelf {
+      display: inline-flex;
+      gap: 30px;
+      padding: 0 20px;
+    }
+
+    .vinyl-item {
+      display: inline-block;
+      width: 180px;
+      height: 180px;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border-radius: 12px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .vinyl-item:hover {
+      transform: scale(1.06) rotate(2deg);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.8);
+      z-index: 10;
+    }
+    .vinyl-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+    .vinyl-item .vinyl-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      padding: 12px;
+      border-radius: 0 0 12px 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .vinyl-item:hover .vinyl-overlay {
+      opacity: 1;
+    }
+    .vinyl-item .vinyl-overlay span {
+      display: block;
       font-size: 12px;
-      color: #b3b3b3;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    .vinyl-item .vinyl-overlay .artist {
+      font-size: 10px;
+      color: #aaa;
+      font-weight: 400;
+    }
+
+    /* Detalhes do álbum */
+    #album-detail {
+      display: none;
+      padding: 40px 32px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    #album-detail.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .detail-header {
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .detail-cover {
+      width: 200px;
+      height: 200px;
+      border-radius: 12px;
+      object-fit: cover;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      flex-shrink: 0;
+    }
+    .detail-info {
+      flex: 1;
+      min-width: 200px;
+    }
+    .detail-info .label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .detail-info h2 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .detail-info .artist-name {
+      font-size: 18px;
+      color: #ddd;
+      margin-bottom: 8px;
+    }
+    .detail-info .meta {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+    .detail-info .meta span {
+      margin-right: 16px;
+    }
+    .detail-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .detail-actions button {
+      background: #1db954;
+      border: none;
+      border-radius: 30px;
+      padding: 10px 24px;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .detail-actions button:hover {
+      background: #1ed760;
+    }
+    .detail-actions .secondary {
+      background: transparent;
+      border: 1px solid #555;
+      color: #ddd;
+    }
+    .detail-actions .secondary:hover {
+      background: #222;
+      border-color: #888;
+    }
+
+    /* Lista de faixas */
+    .tracklist {
+      margin-top: 24px;
+    }
+    .tracklist h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #ddd;
+    }
+    .track-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #222;
+      font-size: 14px;
+    }
+    .track-item:last-child {
+      border-bottom: none;
+    }
+    .track-item .track-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .track-item .track-number {
+      color: #666;
+      font-size: 12px;
+      width: 24px;
+      text-align: right;
+    }
+    .track-item .track-name {
+      font-weight: 500;
+    }
+    .track-item .track-feat {
+      font-size: 12px;
+      color: #888;
+      margin-left: 4px;
+    }
+    .track-item .track-duration {
+      color: #666;
+      font-size: 12px;
+    }
+    .track-item .explicit {
+      color: #888;
+      font-size: 10px;
+      background: #222;
+      padding: 0 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+
+    .back-btn {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #888;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.2s;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .back-btn:hover {
+      color: white;
+    }
+
+    /* Loading */
     .loading {
       text-align: center;
-      margin-top: 40px;
-      color: #1db954;
+      padding: 60px 0;
+      color: #888;
     }
-    .error {
-      text-align: center;
-      color: #ff4444;
-      margin-top: 20px;
+    .loading .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 3px solid #222;
+      border-top: 3px solid #1db954;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+      header { padding: 16px 20px; }
+      header h1 { font-size: 20px; }
+      .shelf-container { padding: 20px 16px; }
+      .vinyl-item { width: 140px; height: 140px; }
+      .detail-header { flex-direction: column; align-items: center; text-align: center; }
+      .detail-cover { width: 160px; height: 160px; }
+      .detail-info h2 { font-size: 28px; }
+      #album-detail { padding: 20px 16px; }
     }
   </style>
 </head>
 <body>
 
-  <h1>🎵 Discfy</h1>
+  <header>
+    <h1>🎵 Discfy</h1>
+    <button id="header-login" style="display:none;">Entrar</button>
+  </header>
 
-  <button id="login-btn" style="display:none;">Entrar com Spotify</button>
+  <div id="login-screen">
+    <h2>Discfy</h2>
+    <p>Seus álbuns do Spotify em forma de vinil, em uma estante moderna.</p>
+    <button id="login-btn">Entrar com Spotify</button>
+  </div>
 
-  <div id="app" class="loading">Carregando seus álbuns...</div>
+  <div id="main-content" style="display:none;">
+    <!-- Estante -->
+    <div class="shelf-container" id="shelf-container">
+      <div class="shelf" id="shelf"></div>
+    </div>
+
+    <!-- Detalhes do álbum -->
+    <div id="album-detail">
+      <button class="back-btn" id="back-btn">← Voltar para estante</button>
+      <div class="detail-header" id="detail-header"></div>
+      <div class="tracklist" id="tracklist"></div>
+    </div>
+  </div>
+
+  <div id="loading-screen" class="loading" style="display:none;">
+    <div class="spinner"></div>
+    <p>Carregando seus álbuns...</p>
+  </div>
 
   <script>
     // CONFIGURAÇÕES
     const CLIENT_ID = 'f7df44e728f54415b22b3cd561dbdfdb';
-    const REDIRECT_URI = 'https://akiradv.github.io/discfy/';  // URL final do GitHub Pages
+    const REDIRECT_URI = 'https://akiradv.github.io/discfy/';
 
     // Utilitários PKCE
     function generateCodeVerifier() {
@@ -115,9 +415,24 @@
         .replace(/=+$/, '');
     }
 
-    // Fluxo principal
+    // Estado
     let accessToken = localStorage.getItem('spotify_access_token');
+    let allAlbums = [];
+    let currentAlbumId = null;
 
+    // Elementos
+    const loginScreen = document.getElementById('login-screen');
+    const loginBtn = document.getElementById('login-btn');
+    const headerLogin = document.getElementById('header-login');
+    const mainContent = document.getElementById('main-content');
+    const loadingScreen = document.getElementById('loading-screen');
+    const shelf = document.getElementById('shelf');
+    const albumDetail = document.getElementById('album-detail');
+    const detailHeader = document.getElementById('detail-header');
+    const tracklist = document.getElementById('tracklist');
+    const backBtn = document.getElementById('back-btn');
+
+    // Autenticação
     async function startLogin() {
       const verifier = generateCodeVerifier();
       localStorage.setItem('code_verifier', verifier);
@@ -149,13 +464,13 @@
       const data = await response.json();
       if (data.access_token) {
         localStorage.setItem('spotify_access_token', data.access_token);
-        // Remove o code da URL
         window.history.replaceState({}, document.title, REDIRECT_URI);
         return true;
       }
       return false;
     }
 
+    // API
     async function fetchAllAlbums(token) {
       let albums = [];
       let next = 'https://api.spotify.com/v1/me/albums?limit=50';
@@ -164,7 +479,6 @@
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.status === 401) {
-          // Token expirado
           localStorage.removeItem('spotify_access_token');
           location.reload();
           return [];
@@ -176,34 +490,145 @@
       return albums;
     }
 
-    function renderVinyls(albums) {
-      const app = document.getElementById('app');
-      if (!albums.length) {
-        app.innerHTML = '<p style="text-align:center;">Nenhum álbum salvo encontrado.</p>';
-        return;
-      }
+    async function fetchAlbumDetails(token, albumId) {
+      const res = await fetch(`https://api.spotify.com/v1/albums/${albumId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      return res.json();
+    }
 
-      let html = '<div class="grid">';
+    // Extrair cor dominante (simplificado)
+    function getDominantColor(imageUrl) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.src = imageUrl;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 1;
+          canvas.height = 1;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, 1, 1);
+          const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+          resolve(`rgb(${r}, ${g}, ${b})`);
+        };
+        img.onerror = () => resolve('#333');
+      });
+    }
+
+    // Renderizar estante
+    function renderShelf(albums) {
+      shelf.innerHTML = '';
       albums.forEach(item => {
         const album = item.album;
         const image = album.images[0]?.url || '';
-        html += `
-          <div class="vinyl-container" onclick="window.open('https://open.spotify.com/album/${album.id}', '_blank')">
-            <div class="vinyl" style="background-image: url(${image});"></div>
-            <div class="vinyl-title">${album.name}</div>
-            <div class="vinyl-artist">${album.artists[0]?.name || ''}</div>
+        const div = document.createElement('div');
+        div.className = 'vinyl-item';
+        div.innerHTML = `
+          <img src="${image}" alt="${album.name}" loading="lazy" />
+          <div class="vinyl-overlay">
+            <span>${album.name}</span>
+            <span class="artist">${album.artists[0]?.name || ''}</span>
           </div>
         `;
+        div.addEventListener('click', () => openAlbumDetail(album.id));
+        shelf.appendChild(div);
       });
-      html += '</div>';
-      app.innerHTML = html;
+    }
+
+    // Abrir detalhes do álbum
+    async function openAlbumDetail(albumId) {
+      currentAlbumId = albumId;
+      albumDetail.classList.remove('active');
+      albumDetail.style.display = 'none';
+      loadingScreen.style.display = 'block';
+      shelf.parentElement.style.display = 'none';
+
+      try {
+        const album = await fetchAlbumDetails(accessToken, albumId);
+        const image = album.images[0]?.url || '';
+        const color = await getDominantColor(image);
+
+        // Header
+        const totalMinutes = Math.floor(album.tracks.items.reduce((sum, t) => sum + t.duration_ms, 0) / 60000);
+        const trackCount = album.tracks.items.length;
+
+        let artistsHtml = album.artists.map(a => a.name).join(', ');
+        let feats = [];
+        album.tracks.items.forEach(t => {
+          t.artists.forEach(a => {
+            if (!album.artists.some(ma => ma.id === a.id) && !feats.some(f => f.id === a.id)) {
+              feats.push(a);
+            }
+          });
+        });
+        let featText = feats.length ? ` (feat. ${feats.map(f => f.name).join(', ')})` : '';
+
+        detailHeader.innerHTML = `
+          <img class="detail-cover" src="${image}" alt="${album.name}" style="border: 2px solid ${color};" />
+          <div class="detail-info">
+            <div class="label">Álbum</div>
+            <h2 style="color: ${color};">${album.name}</h2>
+            <div class="artist-name">${artistsHtml}${featText}</div>
+            <div class="meta">
+              <span>${album.release_date?.split('-')[0]}</span>
+              <span>${trackCount} músicas</span>
+              <span>${totalMinutes} min</span>
+            </div>
+            <div class="detail-actions">
+              <button onclick="window.open('https://open.spotify.com/album/${album.id}', '_blank')">
+                ▶ Ouvir no Spotify
+              </button>
+              <button class="secondary" onclick="closeAlbumDetail()">Voltar</button>
+            </div>
+          </div>
+        `;
+
+        // Tracklist
+        tracklist.innerHTML = '<h3>Faixas</h3>';
+        album.tracks.items.forEach((track, index) => {
+          const minutes = Math.floor(track.duration_ms / 60000);
+          const seconds = ((track.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0');
+          const featArtists = track.artists.filter(a => !album.artists.some(ma => ma.id === a.id));
+          const featText2 = featArtists.length ? ` (feat. ${featArtists.map(a => a.name).join(', ')})` : '';
+          const explicit = track.explicit ? '<span class="explicit">E</span>' : '';
+
+          const div = document.createElement('div');
+          div.className = 'track-item';
+          div.innerHTML = `
+            <div class="track-left">
+              <span class="track-number">${index + 1}</span>
+              <span class="track-name">${track.name}</span>
+              ${featText2}
+              ${explicit}
+            </div>
+            <span class="track-duration">${minutes}:${seconds}</span>
+          `;
+          tracklist.appendChild(div);
+        });
+
+        loadingScreen.style.display = 'none';
+        albumDetail.style.display = 'block';
+        setTimeout(() => albumDetail.classList.add('active'), 10);
+      } catch (err) {
+        loadingScreen.innerHTML = '<p style="color:#ff4444;">Erro ao carregar detalhes do álbum.</p>';
+      }
+    }
+
+    function closeAlbumDetail() {
+      albumDetail.classList.remove('active');
+      albumDetail.style.display = 'none';
+      loadingScreen.style.display = 'none';
+      shelf.parentElement.style.display = 'block';
+      currentAlbumId = null;
     }
 
     // Inicialização
     (async function init() {
-      const loginBtn = document.getElementById('login-btn');
+      loginBtn.addEventListener('click', startLogin);
+      headerLogin.addEventListener('click', startLogin);
+      backBtn.addEventListener('click', closeAlbumDetail);
 
-      // Se tem code na URL, troca por token
       if (window.location.search.includes('code')) {
         const success = await handleRedirect();
         if (success) {
@@ -211,16 +636,22 @@
         }
       }
 
-      // Se tem token, busca álbuns
       if (accessToken) {
-        document.getElementById('app').innerHTML = '<div class="loading">Carregando seus álbuns...</div>';
+        loginScreen.style.display = 'none';
+        headerLogin.style.display = 'none';
+        mainContent.style.display = 'block';
+        loadingScreen.style.display = 'block';
+
         const albums = await fetchAllAlbums(accessToken);
-        renderVinyls(albums);
+        allAlbums = albums;
+        renderShelf(albums);
+
+        loadingScreen.style.display = 'none';
+        shelf.parentElement.style.display = 'block';
       } else {
-        // Não logado
-        document.getElementById('app').innerHTML = '';
-        loginBtn.style.display = 'block';
-        loginBtn.addEventListener('click', startLogin);
+        loginScreen.style.display = 'flex';
+        headerLogin.style.display = 'block';
+        headerLogin.textContent = 'Entrar';
       }
     })();
   </script>
