@@ -15,7 +15,6 @@
       width: 100vw;
     }
 
-    /* FUNDO ESTILO APPLE MUSIC */
     #album-bg {
       position: fixed;
       top: -10%;
@@ -29,7 +28,6 @@
       transition: background-image 0.8s ease;
     }
     
-    /* Gradiente estilo Apple Music */
     #album-bg::before {
       content: '';
       position: absolute;
@@ -96,7 +94,6 @@
       transform: scale(1.05);
     }
 
-    /* Login */
     #login-overlay {
       position: fixed; 
       inset: 0; 
@@ -146,7 +143,6 @@
       box-shadow: 0 12px 40px rgba(29,185,84,0.5);
     }
 
-    /* Loading */
     #loading-screen {
       position: fixed; 
       inset: 0; 
@@ -175,7 +171,7 @@
       to { transform: rotate(360deg); } 
     }
 
-    /* CARROSSEL */
+    /* CARROSSEL SIMPLIFICADO */
     #carousel-container {
       position: fixed; 
       inset: 0; 
@@ -183,18 +179,26 @@
       display: flex; 
       align-items: center; 
       justify-content: center;
-      perspective: 1500px; 
-      touch-action: none;
       overflow: hidden;
+      cursor: grab;
+    }
+    
+    #carousel-container:active {
+      cursor: grabbing;
     }
 
     #carousel-track {
       position: relative;
-      width: 100%;
-      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    #carousel-track.dragging {
+      transition: none;
     }
 
     .album-card {
@@ -208,7 +212,6 @@
       cursor: pointer;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      transform-style: preserve-3d;
     }
     
     .album-card img {
@@ -221,7 +224,8 @@
     .album-card.center {
       transform: translateX(0) scale(1) rotateY(0deg);
       z-index: 10;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.1);
+      opacity: 1;
+      filter: brightness(1);
     }
     
     .album-card.left {
@@ -258,7 +262,6 @@
       display: none;
     }
 
-    /* Informações do álbum */
     #album-info {
       position: fixed; 
       bottom: 120px; 
@@ -269,6 +272,7 @@
       width: 90%;
       max-width: 500px;
       text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+      pointer-events: none;
     }
     
     #album-info h2 {
@@ -285,7 +289,6 @@
       font-weight: 500;
     }
 
-    /* Botão Play */
     #play-btn {
       position: fixed; 
       bottom: 40px; 
@@ -305,6 +308,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      pointer-events: auto;
     }
     
     #play-btn:hover { 
@@ -316,7 +320,6 @@
       transform: translateX(-50%) scale(0.98);
     }
 
-    /* Detalhes do álbum */
     #album-detail {
       display: none; 
       position: fixed; 
@@ -506,7 +509,6 @@
       background: rgba(255,255,255,0.2); 
     }
 
-    /* Configurações */
     #settings-modal {
       position: fixed; 
       inset: 0; 
@@ -611,7 +613,6 @@
       background: rgba(255,68,68,0.1);
     }
 
-    /* Responsivo */
     @media (max-width: 768px) {
       .album-card { 
         width: min(32vh, 40vw, 220px); 
@@ -661,7 +662,6 @@
 </head>
 <body>
 
-  <!-- Fundo estilo Apple Music -->
   <div id="album-bg"></div>
 
   <header>
@@ -671,20 +671,17 @@
     </div>
   </header>
 
-  <!-- Login -->
   <div id="login-overlay">
     <h2>Discfy</h2>
     <p>Sua coleção de álbuns do Spotify em um carrossel 3D estilo vinyl.</p>
     <button id="login-btn">Conectar com Spotify</button>
   </div>
 
-  <!-- Loading -->
   <div id="loading-screen">
     <div class="spinner"></div>
     <p style="color: #888; font-size: 16px;">Carregando sua biblioteca...</p>
   </div>
 
-  <!-- Carrossel -->
   <div id="carousel-container">
     <div id="carousel-track"></div>
   </div>
@@ -699,14 +696,12 @@
     <span>Ouvir no Spotify</span>
   </button>
 
-  <!-- Detalhes -->
   <div id="album-detail">
     <button class="back-btn" id="detail-back-btn">← Voltar</button>
     <div class="detail-header" id="detail-header"></div>
     <div class="tracklist" id="detail-tracklist"></div>
   </div>
 
-  <!-- Configurações -->
   <div id="settings-modal">
     <div class="settings-card">
       <h3>⚙️ Configurações</h3>
@@ -736,7 +731,6 @@
   </div>
 
   <script>
-    // CONFIGURAÇÕES - SUBSTITUA PELO SEU CLIENT ID
     const CLIENT_ID = 'f7df44e728f54415b22b3cd561dbdfdb';
     const REDIRECT_URI = window.location.origin + window.location.pathname;
 
@@ -746,7 +740,6 @@
     let vinylSize = 'medium';
     let isAnimating = false;
 
-    // Elementos do DOM
     const loginOverlay = document.getElementById('login-overlay');
     const loginBtn = document.getElementById('login-btn');
     const loadingScreen = document.getElementById('loading-screen');
@@ -766,10 +759,14 @@
     const detailHeader = document.getElementById('detail-header');
     const detailTracklist = document.getElementById('detail-tracklist');
     const detailBackBtn = document.getElementById('detail-back-btn');
+    const container = document.getElementById('carousel-container');
 
-    // ===========================
-    // AUTENTICAÇÃO SPOTIFY (PKCE)
-    // ===========================
+    // SISTEMA DE DRAG SIMPLIFICADO
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    let dragStartTime = 0;
+
     function generateCodeVerifier() {
       const array = new Uint8Array(32);
       crypto.getRandomValues(array);
@@ -844,9 +841,6 @@
       return false;
     }
 
-    // ===========================
-    // API SPOTIFY
-    // ===========================
     async function fetchAllAlbums(token) {
       let all = [];
       let next = 'https://api.spotify.com/v1/me/albums?limit=50&market=BR';
@@ -887,9 +881,6 @@
       }
     }
 
-    // ===========================
-    // CARROSSEL
-    // ===========================
     function getSize() {
       const sizes = {
         large: 1.2,
@@ -929,13 +920,13 @@
         const imgEl = document.createElement('img');
         imgEl.src = img;
         imgEl.alt = item.album.name;
-        imgEl.loading = 'lazy';
+        imgEl.draggable = false;
         card.appendChild(imgEl);
         
-        card.addEventListener('click', () => {
-          if (index === currentIndex) {
+        card.addEventListener('click', (e) => {
+          if (!isDragging && index === currentIndex) {
             openAlbumDetail(item.album.id);
-          } else {
+          } else if (!isDragging) {
             goTo(index);
           }
         });
@@ -947,13 +938,12 @@
       updateBg();
     }
 
-    function updatePositions(animate = true) {
+    function updatePositions() {
       const cards = track.querySelectorAll('.album-card');
       cards.forEach((card) => {
         const index = parseInt(card.dataset.index);
         const className = getPositionClass(index);
         card.className = 'album-card ' + className;
-        card.style.transition = animate ? 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none';
         card.style.width = getSize();
         card.style.height = getSize();
       });
@@ -986,7 +976,7 @@
       
       isAnimating = true;
       currentIndex = index;
-      updatePositions(true);
+      updatePositions();
       updateInfo();
       updateBg();
       
@@ -995,106 +985,115 @@
       }, 650);
     }
 
-    // ===========================
-    // GESTOS DE ARRASTAR
-    // ===========================
-    let startX = 0;
-    let currentX = 0;
-    let isDragging = false;
-    const container = document.getElementById('carousel-container');
-
+    // DRAG SYSTEM - SIMPLES E FUNCIONAL
     function onStart(e) {
       if (detailView.style.display === 'block') return;
       if (isAnimating) return;
       
-      isDragging = true;
-      const x = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-      startX = x;
-      currentX = x;
+      isDragging = false;
+      startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+      currentX = startX;
+      dragStartTime = Date.now();
       
-      const cards = track.querySelectorAll('.album-card');
-      cards.forEach(c => c.style.transition = 'none');
+      track.classList.add('dragging');
     }
 
     function onMove(e) {
-      if (!isDragging) return;
+      if (startX === 0) return;
       
-      const x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-      currentX = x;
-      const delta = (currentX - startX) / window.innerWidth;
+      currentX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+      const diff = currentX - startX;
       
-      const cards = track.querySelectorAll('.album-card');
-      cards.forEach((card) => {
-        const index = parseInt(card.dataset.index);
-        const diff = index - currentIndex;
-        const rawPos = diff + delta;
-        
-        let tx = 0, scale = 1, rotateY = 0, zIndex = 1, opacity = 1;
-        
-        if (Math.abs(rawPos) > 2.5) {
-          card.style.display = 'none';
-          return;
-        }
-        card.style.display = 'block';
-        
-        if (rawPos >= -0.5 && rawPos <= 0.5) {
-          tx = 0; scale = 1; rotateY = 0; zIndex = 10; opacity = 1;
-        } else if (rawPos > 0.5 && rawPos <= 1.5) {
-          const p = (rawPos - 0.5);
-          tx = 120 * p;
-          scale = 1 - (0.2 * p);
-          rotateY = -30 * p;
-          zIndex = 5;
-          opacity = 1 - (0.4 * p);
-        } else if (rawPos < -0.5 && rawPos >= -1.5) {
-          const p = (-rawPos - 0.5);
-          tx = -120 * p;
-          scale = 1 - (0.2 * p);
-          rotateY = 30 * p;
-          zIndex = 5;
-          opacity = 1 - (0.4 * p);
-        } else if (rawPos > 1.5 && rawPos <= 2.5) {
-          const p = (rawPos - 1.5);
-          tx = 120 + (100 * p);
-          scale = 0.8 - (0.2 * p);
-          rotateY = -30 - (10 * p);
-          zIndex = 1;
-          opacity = 0.6 - (0.3 * p);
-        } else if (rawPos < -1.5 && rawPos >= -2.5) {
-          const p = (-rawPos - 1.5);
-          tx = -120 - (100 * p);
-          scale = 0.8 - (0.2 * p);
-          rotateY = 30 + (10 * p);
-          zIndex = 1;
-          opacity = 0.6 - (0.3 * p);
-        }
-        
-        card.style.transform = `translateX(${tx}%) scale(${scale}) rotateY(${rotateY}deg)`;
-        card.style.zIndex = zIndex;
-        card.style.opacity = Math.max(0, opacity);
-      });
+      if (Math.abs(diff) > 5) {
+        isDragging = true;
+      }
+      
+      // Mover visualmente durante o drag
+      if (Math.abs(diff) < 300) {
+        const cards = track.querySelectorAll('.album-card');
+        cards.forEach((card) => {
+          const index = parseInt(card.dataset.index);
+          const diff_index = index - currentIndex;
+          
+          // Calcula posição base
+          let baseX = 0;
+          let baseScale = 1;
+          let baseRotate = 0;
+          let baseOpacity = 1;
+          
+          if (diff_index === 0) {
+            baseX = 0;
+            baseScale = 1;
+            baseRotate = 0;
+            baseOpacity = 1;
+          } else if (diff_index === -1) {
+            baseX = -120;
+            baseScale = 0.8;
+            baseRotate = 30;
+            baseOpacity = 0.6;
+          } else if (diff_index === 1) {
+            baseX = 120;
+            baseScale = 0.8;
+            baseRotate = -30;
+            baseOpacity = 0.6;
+          } else if (diff_index === -2) {
+            baseX = -220;
+            baseScale = 0.6;
+            baseRotate = 40;
+            baseOpacity = 0.3;
+          } else if (diff_index === 2) {
+            baseX = 220;
+            baseScale = 0.6;
+            baseRotate = -40;
+            baseOpacity = 0.3;
+          } else {
+            card.style.display = 'none';
+            return;
+          }
+          
+          // Aplica offset do drag apenas nos cards visíveis
+          const dragOffset = diff * 0.3;
+          const finalX = baseX + (diff_index === 0 ? dragOffset : diff_offset * 0.1);
+          
+          card.style.display = 'block';
+          card.style.transform = `translateX(${finalX}%) scale(${baseScale}) rotateY(${baseRotate}deg)`;
+          card.style.opacity = baseOpacity;
+        });
+      }
     }
 
     function onEnd(e) {
-      if (!isDragging) return;
-      isDragging = false;
+      if (startX === 0) return;
       
-      const delta = (currentX - startX) / window.innerWidth;
+      track.classList.remove('dragging');
+      
+      const diff = currentX - startX;
+      const timeDiff = Date.now() - dragStartTime;
+      
+      // Restaura transição
       const cards = track.querySelectorAll('.album-card');
-      cards.forEach(c => c.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)');
+      cards.forEach(card => {
+        card.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      });
       
-      if (Math.abs(delta) > 0.15) {
-        if (delta < 0) {
+      // Detecta direção e vai para próximo/anterior
+      if (Math.abs(diff) > 80 || (Math.abs(diff) > 30 && timeDiff < 300)) {
+        if (diff < 0) {
           goTo(currentIndex + 1);
         } else {
           goTo(currentIndex - 1);
         }
       } else {
-        updatePositions(true);
+        // Volta para posição original
+        updatePositions();
       }
+      
+      startX = 0;
+      currentX = 0;
+      isDragging = false;
     }
 
-    // Event listeners de drag
+    // Event listeners
     container.addEventListener('mousedown', onStart);
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onEnd);
@@ -1102,15 +1101,15 @@
     window.addEventListener('touchmove', onMove, { passive: true });
     window.addEventListener('touchend', onEnd, { passive: true });
 
+    // Prevenir drag em imagens
+    document.addEventListener('dragstart', (e) => e.preventDefault());
+
     // Teclado
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft') goTo(currentIndex - 1);
       if (e.key === 'ArrowRight') goTo(currentIndex + 1);
     });
 
-    // ===========================
-    // DETALHES DO ÁLBUM
-    // ===========================
     async function openAlbumDetail(id) {
       detailView.style.display = 'block';
       detailView.classList.remove('active');
@@ -1181,9 +1180,6 @@
 
     detailBackBtn.addEventListener('click', closeDetail);
 
-    // ===========================
-    // CONFIGURAÇÕES
-    // ===========================
     settingsBtn.addEventListener('click', () => {
       settingsModal.classList.add('open');
     });
@@ -1219,7 +1215,6 @@
           return yearB - yearA;
         });
       }
-      // 'added' mantém a ordem original
       
       albums = sorted;
       currentIndex = 0;
@@ -1235,13 +1230,9 @@
       }
     });
 
-    // ===========================
-    // INICIALIZAÇÃO
-    // ===========================
     (async function init() {
       loginBtn.addEventListener('click', startLogin);
       
-      // Verifica se tem código de auth na URL
       if (window.location.search.includes('code=')) {
         const success = await handleRedirect();
         if (success) {
