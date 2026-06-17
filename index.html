@@ -171,7 +171,6 @@
       to { transform: rotate(360deg); } 
     }
 
-    /* CARROSSEL SIMPLIFICADO */
     #carousel-container {
       position: fixed; 
       inset: 0; 
@@ -181,6 +180,8 @@
       justify-content: center;
       overflow: hidden;
       cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
     }
     
     #carousel-container:active {
@@ -194,11 +195,6 @@
       justify-content: center;
       width: 100%;
       height: 100%;
-      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    
-    #carousel-track.dragging {
-      transition: none;
     }
 
     .album-card {
@@ -208,7 +204,7 @@
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-      transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
       cursor: pointer;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
@@ -219,6 +215,9 @@
       height: 100%; 
       object-fit: cover; 
       display: block;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .album-card.center {
@@ -761,11 +760,12 @@
     const detailBackBtn = document.getElementById('detail-back-btn');
     const container = document.getElementById('carousel-container');
 
-    // SISTEMA DE DRAG SIMPLIFICADO
+    // DRAG SYSTEM VARIABLES
     let startX = 0;
     let currentX = 0;
     let isDragging = false;
     let dragStartTime = 0;
+    let dragThreshold = 5;
 
     function generateCodeVerifier() {
       const array = new Uint8Array(32);
@@ -901,6 +901,60 @@
       return 'hidden';
     }
 
+    function getCardTransform(index, dragOffset = 0) {
+      const diff = index - currentIndex;
+      const pos = diff + (dragOffset / window.innerWidth);
+      
+      let translateX, scale, rotateY, opacity;
+      
+      if (pos < -2.5 || pos > 2.5) {
+        return { display: 'none' };
+      }
+      
+      if (pos >= -0.5 && pos <= 0.5) {
+        // Centro
+        translateX = pos * 200;
+        scale = 1 - Math.abs(pos) * 0.1;
+        rotateY = pos * 30;
+        opacity = 1 - Math.abs(pos) * 0.3;
+      } else if (pos > 0.5 && pos <= 1.5) {
+        // Direita
+        const p = pos - 0.5;
+        translateX = 120 + (p * 100);
+        scale = 0.8 - (p * 0.1);
+        rotateY = -30 - (p * 10);
+        opacity = 0.6 - (p * 0.2);
+      } else if (pos < -0.5 && pos >= -1.5) {
+        // Esquerda
+        const p = -pos - 0.5;
+        translateX = -120 - (p * 100);
+        scale = 0.8 - (p * 0.1);
+        rotateY = 30 + (p * 10);
+        opacity = 0.6 - (p * 0.2);
+      } else if (pos > 1.5 && pos <= 2.5) {
+        // Far right
+        const p = pos - 1.5;
+        translateX = 220 + (p * 100);
+        scale = 0.7 - (p * 0.1);
+        rotateY = -40 - (p * 5);
+        opacity = 0.3 - (p * 0.2);
+      } else if (pos < -1.5 && pos >= -2.5) {
+        // Far left
+        const p = -pos - 1.5;
+        translateX = -220 - (p * 100);
+        scale = 0.7 - (p * 0.1);
+        rotateY = 40 + (p * 5);
+        opacity = 0.3 - (p * 0.2);
+      }
+      
+      return {
+        display: 'block',
+        transform: `translateX(${translateX}%) scale(${scale}) rotateY(${rotateY}deg)`,
+        opacity: Math.max(0, opacity),
+        zIndex: Math.max(1, 10 - Math.abs(diff) * 2)
+      };
+    }
+
     function renderCarousel(list) {
       track.innerHTML = '';
       
@@ -938,12 +992,31 @@
       updateBg();
     }
 
-    function updatePositions() {
+    function updatePositions(dragOffset = 0) {
       const cards = track.querySelectorAll('.album-card');
       cards.forEach((card) => {
         const index = parseInt(card.dataset.index);
-        const className = getPositionClass(index);
-        card.className = 'album-card ' + className;
+        
+        if (dragOffset === 0) {
+          // Modo normal - usa classes CSS
+          const className = getPositionClass(index);
+          card.className = 'album-card ' + className;
+          card.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        } else {
+          // Modo drag - calcula posição dinâmica
+          card.style.transition = 'none';
+          const transform = getCardTransform(index, dragOffset);
+          
+          if (transform.display === 'none') {
+            card.style.display = 'none';
+          } else {
+            card.style.display = 'block';
+            card.style.transform = transform.transform;
+            card.style.opacity = transform.opacity;
+            card.style.zIndex = transform.zIndex;
+          }
+        }
+        
         card.style.width = getSize();
         card.style.height = getSize();
       });
@@ -976,16 +1049,16 @@
       
       isAnimating = true;
       currentIndex = index;
-      updatePositions();
+      updatePositions(0);
       updateInfo();
       updateBg();
       
       setTimeout(() => { 
         isAnimating = false; 
-      }, 650);
+      }, 550);
     }
 
-    // DRAG SYSTEM - SIMPLES E FUNCIONAL
+    // DRAG SYSTEM - CORRIGIDO
     function onStart(e) {
       if (detailView.style.display === 'block') return;
       if (isAnimating) return;
@@ -994,100 +1067,49 @@
       startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
       currentX = startX;
       dragStartTime = Date.now();
-      
-      track.classList.add('dragging');
     }
 
     function onMove(e) {
-      if (startX === 0) return;
+      if (startX === 0 || isAnimating) return;
       
       currentX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
       const diff = currentX - startX;
       
-      if (Math.abs(diff) > 5) {
+      if (Math.abs(diff) > dragThreshold) {
         isDragging = true;
       }
       
-      // Mover visualmente durante o drag
-      if (Math.abs(diff) < 300) {
-        const cards = track.querySelectorAll('.album-card');
-        cards.forEach((card) => {
-          const index = parseInt(card.dataset.index);
-          const diff_index = index - currentIndex;
-          
-          // Calcula posição base
-          let baseX = 0;
-          let baseScale = 1;
-          let baseRotate = 0;
-          let baseOpacity = 1;
-          
-          if (diff_index === 0) {
-            baseX = 0;
-            baseScale = 1;
-            baseRotate = 0;
-            baseOpacity = 1;
-          } else if (diff_index === -1) {
-            baseX = -120;
-            baseScale = 0.8;
-            baseRotate = 30;
-            baseOpacity = 0.6;
-          } else if (diff_index === 1) {
-            baseX = 120;
-            baseScale = 0.8;
-            baseRotate = -30;
-            baseOpacity = 0.6;
-          } else if (diff_index === -2) {
-            baseX = -220;
-            baseScale = 0.6;
-            baseRotate = 40;
-            baseOpacity = 0.3;
-          } else if (diff_index === 2) {
-            baseX = 220;
-            baseScale = 0.6;
-            baseRotate = -40;
-            baseOpacity = 0.3;
-          } else {
-            card.style.display = 'none';
-            return;
-          }
-          
-          // Aplica offset do drag apenas nos cards visíveis
-          const dragOffset = diff * 0.3;
-          const finalX = baseX + (diff_index === 0 ? dragOffset : diff_offset * 0.1);
-          
-          card.style.display = 'block';
-          card.style.transform = `translateX(${finalX}%) scale(${baseScale}) rotateY(${baseRotate}deg)`;
-          card.style.opacity = baseOpacity;
-        });
+      // Aplica transformação durante o drag
+      if (isDragging) {
+        updatePositions(diff);
       }
     }
 
     function onEnd(e) {
-      if (startX === 0) return;
-      
-      track.classList.remove('dragging');
+      if (startX === 0 || isAnimating) {
+        startX = 0;
+        return;
+      }
       
       const diff = currentX - startX;
       const timeDiff = Date.now() - dragStartTime;
+      const absDiff = Math.abs(diff);
       
-      // Restaura transição
-      const cards = track.querySelectorAll('.album-card');
-      cards.forEach(card => {
-        card.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      });
-      
-      // Detecta direção e vai para próximo/anterior
-      if (Math.abs(diff) > 80 || (Math.abs(diff) > 30 && timeDiff < 300)) {
+      // Determina se vai mudar de álbum
+      if (isDragging && (absDiff > 100 || (absDiff > 50 && timeDiff < 300))) {
         if (diff < 0) {
+          // Arrastou para esquerda - vai para próximo
           goTo(currentIndex + 1);
         } else {
+          // Arrastou para direita - vai para anterior
           goTo(currentIndex - 1);
         }
       } else {
-        // Volta para posição original
-        updatePositions();
+        // Volta para posição atual
+        updatePositions(0);
       }
       
+      // Reset
       startX = 0;
       currentX = 0;
       isDragging = false;
@@ -1101,8 +1123,11 @@
     window.addEventListener('touchmove', onMove, { passive: true });
     window.addEventListener('touchend', onEnd, { passive: true });
 
-    // Prevenir drag em imagens
+    // Prevenir comportamentos padrão
     document.addEventListener('dragstart', (e) => e.preventDefault());
+    document.addEventListener('selectstart', (e) => {
+      if (isDragging) e.preventDefault();
+    });
 
     // Teclado
     document.addEventListener('keydown', (e) => {
